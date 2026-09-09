@@ -50,6 +50,28 @@ body {
   overflow-x: hidden;
 }
 
+/* soft aurora glow, sits below the star dots */
+.aurora {
+  position: fixed;
+  inset: -15%;
+  z-index: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(38% 30% at 18% 12%, rgba(255, 95, 168, 0.38), transparent 70%),
+    radial-gradient(34% 28% at 82% 8%, rgba(139, 107, 255, 0.36), transparent 70%),
+    radial-gradient(42% 34% at 66% 82%, rgba(62, 230, 196, 0.32), transparent 70%),
+    radial-gradient(30% 26% at 8% 88%, rgba(255, 209, 102, 0.28), transparent 70%);
+  filter: blur(60px) saturate(135%);
+  mix-blend-mode: screen;
+  animation: aurora-drift 26s ease-in-out infinite alternate;
+}
+
+@keyframes aurora-drift {
+  0%   { transform: translate3d(0, 0, 0) scale(1); }
+  50%  { transform: translate3d(-2%, 2%, 0) scale(1.06); }
+  100% { transform: translate3d(2%, -2%, 0) scale(1); }
+}
+
 /* subtle starfield, drawn once, no per-element animation */
 .stars {
   position: fixed;

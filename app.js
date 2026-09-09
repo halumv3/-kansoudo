@@ -124,7 +124,10 @@ async function askTeller({ apiKey, systemPrompt, userPrompt, onRetry }) {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
           contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-          generationConfig: { temperature: 0.9, maxOutputTokens: 400 },
+          // 注意: 最近のGemini Flashは応答前に内部で「思考」し、そのトークンも
+          // maxOutputTokensの枠から消費される。小さすぎると本文が途中で
+          // 切れてしまうため、実際に欲しい文章量より余裕を持たせている。
+          generationConfig: { temperature: 0.9, maxOutputTokens: 1024 },
         }),
       });
     } catch (networkErr) {
