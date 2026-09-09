@@ -28,7 +28,15 @@
     <div class="teller-grid" id="tellerGrid" role="radiogroup" aria-label="占い師を選ぶ"></div>
   </section>
 
-  <!-- STEP 2: 入力 -->
+  <!-- 占う方法の切り替え -->
+  <section class="scroll scroll--tabs" id="step-mode">
+    <div class="mode-tabs" role="tablist" aria-label="占いの種類">
+      <button type="button" class="mode-tab" id="tabBirthdate" role="tab" aria-selected="true">🎂 生年月日占い</button>
+      <button type="button" class="mode-tab" id="tabPalm" role="tab" aria-selected="false">✋ 手相占い</button>
+    </div>
+  </section>
+
+  <!-- STEP 2: 入力（生年月日） -->
   <section class="scroll" id="step-form">
     <h2 class="scroll__title"><span class="scroll__num">STEP 2</span>あなたのことを教えてね</h2>
     <form id="fortuneForm" class="fortune-form">
@@ -41,6 +49,29 @@
         <input type="text" id="concern" name="concern" placeholder="例）転職を考えている、片思い中、など" maxlength="80">
       </div>
       <button type="submit" class="btn-seal" id="submitBtn">
+        <span>結果を聞いてみる</span>
+      </button>
+    </form>
+  </section>
+
+  <!-- STEP 2: 入力（手相） -->
+  <section class="scroll" id="step-palm" hidden>
+    <h2 class="scroll__title"><span class="scroll__num">STEP 2</span>手のひらを見せてね</h2>
+    <form id="palmForm" class="fortune-form">
+      <div class="field">
+        <label for="palmPhoto">手のひらの写真</label>
+        <input type="file" id="palmPhoto" name="palmPhoto" accept="image/*" capture="environment" required>
+      </div>
+      <img id="palmPreview" class="palm-preview" alt="アップロードした手のひらのプレビュー" hidden>
+      <div class="field">
+        <label for="palmConcern">気になっていること <span class="field__optional">（任意）</span></label>
+        <input type="text" id="palmConcern" name="palmConcern" placeholder="例）今の恋愛の相性、転職のタイミングなど" maxlength="80">
+      </div>
+      <label class="consent-label">
+        <input type="checkbox" id="palmConsent" required>
+        <span>写真はGoogleのAI（Gemini）にその場で送って解析するだけで、こちらのサーバーには保存されません。内容に同意します。</span>
+      </label>
+      <button type="submit" class="btn-seal" id="submitPalmBtn">
         <span>結果を聞いてみる</span>
       </button>
     </form>

@@ -142,7 +142,7 @@ const RETRYABLE_STATUSES = new Set([429, 503]);
 const MAX_RETRIES = 3;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function askTeller({ apiKey, systemPrompt, userPrompt, onRetry }) {
+async function askTeller({ apiKey, systemPrompt, parts, onRetry }) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
   let lastError;
 
@@ -154,7 +154,7 @@ async function askTeller({ apiKey, systemPrompt, userPrompt, onRetry }) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: systemPrompt }] },
-          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          contents: [{ role: "user", parts }],
           // 注意: 最近のGemini Flashは応答前に内部で「思考」し、そのトークンも
           // maxOutputTokensの枠から消費される。小さすぎると本文が途中で
           // 切れてしまうため、実際に欲しい文章量より余裕を持たせている。
@@ -254,20 +254,43 @@ function buildUserPrompt({ birthdate, concern, zodiac, eto }) {
   return prompt;
 }
 
+function showResult(teller, text) {
+  const resultSection = document.getElementById("resultSection");
+  document.getElementById("resultPersona").textContent = `${teller.emoji} ${teller.name} の見立て`;
+  document.getElementById("resultBody").textContent = text;
+  document.getElementById("resultCard").style.setProperty("--accent", teller.accent);
+  resultSection.hidden = false;
+  resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function showError(err) {
+  const resultSection = document.getElementById("resultSection");
+  document.getElementById("resultPersona").textContent = "うまくいきませんでした";
+  document.getElementById("resultBody").textContent =
+    "何度か試したけど占えなかったみたい…APIキーが正しいか、無料枠の上限に達していないかを確認してから、少し時間を置いてもう一度試してみてください。\n\n詳細: " + err.message;
+  resultSection.hidden = false;
+  resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function requireApiKeyOrPrompt() {
+  const apiKey = loadApiKey();
+  if (!apiKey) {
+    document.getElementById("settingsDetails").open = true;
+    setKeyStatus("先にAPIキーを保存してください。", "error");
+    document.getElementById("settingsSection").scrollIntoView({ behavior: "smooth" });
+    return null;
+  }
+  return apiKey;
+}
+
 function wireForm() {
   const form = document.getElementById("fortuneForm");
-  const resultSection = document.getElementById("resultSection");
   const submitBtn = document.getElementById("submitBtn");
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const apiKey = loadApiKey();
-    if (!apiKey) {
-      document.getElementById("settingsDetails").open = true;
-      setKeyStatus("先にAPIキーを保存してください。", "error");
-      document.getElementById("settingsSection").scrollIntoView({ behavior: "smooth" });
-      return;
-    }
+    const apiKey = requireApiKeyOrPrompt();
+    if (!apiKey) return;
 
     const birthdate = document.getElementById("birthdate").value;
     if (!birthdate) return;
@@ -284,22 +307,14 @@ function wireForm() {
       const text = await askTeller({
         apiKey,
         systemPrompt: teller.systemPrompt,
-        userPrompt: buildUserPrompt({ birthdate, concern, zodiac, eto }),
+        parts: [{ text: buildUserPrompt({ birthdate, concern, zodiac, eto }) }],
         onRetry: (attempt) => {
           submitBtn.querySelector("span").textContent = `混んでるみたい…もう一度お願い中(${attempt}/${MAX_RETRIES})`;
         },
       });
-      document.getElementById("resultPersona").textContent = `${teller.emoji} ${teller.name} の見立て`;
-      document.getElementById("resultBody").textContent = text;
-      document.getElementById("resultCard").style.setProperty("--accent", teller.accent);
-      resultSection.hidden = false;
-      resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      showResult(teller, text);
     } catch (err) {
-      document.getElementById("resultPersona").textContent = "うまくいきませんでした";
-      document.getElementById("resultBody").textContent =
-        "何度か試したけど占えなかったみたい…APIキーが正しいか、無料枠の上限に達していないかを確認してから、少し時間を置いてもう一度試してみてください。\n\n詳細: " + err.message;
-      resultSection.hidden = false;
-      resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
+      showError(err);
     } finally {
       submitBtn.disabled = false;
       submitBtn.querySelector("span").textContent = "結果を聞いてみる";
@@ -307,15 +322,148 @@ function wireForm() {
   });
 
   document.getElementById("retryBtn").addEventListener("click", () => {
-    resultSection.hidden = true;
+    document.getElementById("resultSection").hidden = true;
     document.getElementById("step-teller").scrollIntoView({ behavior: "smooth" });
+  });
+}
+
+// ---- 6. 手相占い ----------------------------------------------------------
+// 画像はどこにも保存せず、選んだその場でAPIに送って結果を受け取ったら破棄する。
+const PALM_MODE_INSTRUCTION = `
+これから送られる画像は相談者の手のひらの写真です。写っている線（生命線・感情線・知能線・
+運命線など）の特徴をもとに、あなたの専門分野に絞って前向きな鑑定をしてください。
+生命線は寿命や生死とは絶対に結び付けず、「生命力・行動力・エネルギー量」といった意味合いで
+解釈すること。手のひらがはっきり写っていない・暗すぎる・手が写っていない場合は、無理に
+決めつけず「もう少しはっきり手のひらが写った写真でもう一度試してみてね」という趣旨を
+やさしく伝えること。
+`;
+
+function buildPalmUserPrompt(concern) {
+  let prompt = "添付した手のひらの写真を占ってください。";
+  if (concern) prompt += `相談者が気にしていることは「${concern}」です。これに軽く触れつつ、`;
+  prompt += "あなたのキャラクターらしい口調で鑑定してください。";
+  return prompt;
+}
+
+// 画像をCanvasで再エンコードすることで、撮影日時・位置情報などのEXIF情報を
+// 落としつつ、送信サイズも軽くする（長辺を最大1024pxにリサイズ）。
+function resizeImageFile(file, maxDim = 1024) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
+      img.onload = () => {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const canvas = document.createElement("canvas");
+        canvas.width = Math.round(img.width * scale);
+        canvas.height = Math.round(img.height * scale);
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL("image/jpeg", 0.85);
+        resolve({ base64: dataUrl.split(",")[1], mimeType: "image/jpeg", previewUrl: dataUrl });
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function wireModeTabs() {
+  const tabBirthdate = document.getElementById("tabBirthdate");
+  const tabPalm = document.getElementById("tabPalm");
+  const stepForm = document.getElementById("step-form");
+  const stepPalm = document.getElementById("step-palm");
+
+  function setMode(mode) {
+    const isBirthdate = mode === "birthdate";
+    tabBirthdate.setAttribute("aria-selected", String(isBirthdate));
+    tabPalm.setAttribute("aria-selected", String(!isBirthdate));
+    stepForm.hidden = !isBirthdate;
+    stepPalm.hidden = isBirthdate;
+  }
+
+  tabBirthdate.addEventListener("click", () => setMode("birthdate"));
+  tabPalm.addEventListener("click", () => setMode("palm"));
+}
+
+function wirePalmForm() {
+  const form = document.getElementById("palmForm");
+  const submitBtn = document.getElementById("submitPalmBtn");
+  const fileInput = document.getElementById("palmPhoto");
+  const preview = document.getElementById("palmPreview");
+  const consent = document.getElementById("palmConsent");
+
+  // 送信直前まで画像データはこの変数にだけ保持し、どこにも永続化しない
+  let pendingImage = null;
+
+  fileInput.addEventListener("change", async () => {
+    const file = fileInput.files?.[0];
+    pendingImage = null;
+    if (!file) { preview.hidden = true; return; }
+    try {
+      const resized = await resizeImageFile(file);
+      pendingImage = resized;
+      preview.src = resized.previewUrl;
+      preview.hidden = false;
+    } catch {
+      preview.hidden = true;
+    }
+  });
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const apiKey = requireApiKeyOrPrompt();
+    if (!apiKey) return;
+    if (!consent.checked) {
+      consent.focus();
+      return;
+    }
+    if (!pendingImage) {
+      fileInput.focus();
+      return;
+    }
+
+    const concern = document.getElementById("palmConcern").value.trim();
+    const teller = TELLERS.find(t => t.id === selectedTellerId) || TELLERS[0];
+
+    submitBtn.disabled = true;
+    submitBtn.querySelector("span").textContent = "占い中…";
+
+    try {
+      const text = await askTeller({
+        apiKey,
+        systemPrompt: teller.systemPrompt + "\n\n" + PALM_MODE_INSTRUCTION,
+        parts: [
+          { text: buildPalmUserPrompt(concern) },
+          { inlineData: { mimeType: pendingImage.mimeType, data: pendingImage.base64 } },
+        ],
+        onRetry: (attempt) => {
+          submitBtn.querySelector("span").textContent = `混んでるみたい…もう一度お願い中(${attempt}/${MAX_RETRIES})`;
+        },
+      });
+      showResult(teller, text);
+    } catch (err) {
+      showError(err);
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.querySelector("span").textContent = "結果を聞いてみる";
+      // 結果が出ても失敗しても、画像はこの時点でメモリからも破棄する
+      pendingImage = null;
+      fileInput.value = "";
+      preview.hidden = true;
+      preview.src = "";
+    }
   });
 }
 
 function init() {
   renderTellerGrid();
   wireSettings();
+  wireModeTabs();
   wireForm();
+  wirePalmForm();
 }
 
 document.addEventListener("DOMContentLoaded", init);
