@@ -50,10 +50,11 @@ body {
   overflow-x: hidden;
 }
 
-/* soft aurora glow, sits below the star dots */
+/* soft aurora glow, sits below the star dots (static — animating blur +
+   mix-blend-mode together caused flicker on some GPUs/browsers) */
 .aurora {
   position: fixed;
-  inset: -30%;
+  inset: -10%;
   z-index: 0;
   pointer-events: none;
   background:
@@ -61,16 +62,8 @@ body {
     radial-gradient(34% 28% at 82% 8%, rgba(139, 107, 255, 0.28) 0%, rgba(139, 107, 255, 0.10) 40%, transparent 72%),
     radial-gradient(42% 34% at 66% 82%, rgba(62, 230, 196, 0.26) 0%, rgba(62, 230, 196, 0.10) 40%, transparent 72%),
     radial-gradient(30% 26% at 8% 88%, rgba(255, 209, 102, 0.22) 0%, rgba(255, 209, 102, 0.08) 40%, transparent 72%);
-  filter: blur(50px);
+  filter: blur(40px);
   mix-blend-mode: screen;
-  will-change: transform;
-  animation: aurora-drift 90s ease-in-out infinite alternate;
-}
-
-@keyframes aurora-drift {
-  0%   { transform: translate3d(0, 0, 0); }
-  50%  { transform: translate3d(-1.5%, 1.5%, 0); }
-  100% { transform: translate3d(1.5%, -1.5%, 0); }
 }
 
 /* subtle starfield, drawn once, no per-element animation */
