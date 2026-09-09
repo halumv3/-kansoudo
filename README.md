@@ -27,7 +27,7 @@
 
 1. このリポジトリをGitHubにpushします。
 2. リポジトリの Settings → Pages → Branch を `main` / `root` に設定します。
-3. 数分後、`https://<ユーザー名>.github.io/<リポジトリ名>/` で公開されます。
+3. 数分後、`https://github.com/halumv3/-kansoudo.git` で公開されます。
 
 APIキーは各利用者が自分で発行して自分のブラウザに保存する仕組み（BYOK方式）なので、
 あなたのキーを他人と共有する必要はありません。
