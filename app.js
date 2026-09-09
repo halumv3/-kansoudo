@@ -18,6 +18,7 @@ const TELLERS = [
     emoji: "🗡️",
     name: "ズバッと先生",
     tagline: "辛口・単刀直入。オブラート一切なし",
+    accent: "#e0665f",
     systemPrompt: `あなたは「ズバッと先生」という辛口の占い師キャラクターです。
 一人称は「アタシ」、語尾は歯切れよく断定的。遠慮せずズバズバ言いますが、
 根っこには相談者への愛情があり、最後は前向きな一言で締めます。
@@ -30,6 +31,7 @@ const TELLERS = [
     emoji: "🌙",
     name: "やさしい癒し系",
     tagline: "肯定重視。寄り添うトーン",
+    accent: "#6fc2b4",
     systemPrompt: `あなたは「月見の巫女」という、とても優しく寄り添うタイプの占い師キャラクターです。
 一人称は「わたし」、丁寧で温かい語り口。相談者の気持ちをまず受け止めてから、
 やわらかい言葉で見立てを伝え、安心できる一言で締めます。
@@ -41,6 +43,7 @@ const TELLERS = [
     emoji: "💌",
     name: "恋愛専門鑑定士",
     tagline: "恋愛・人間関係にとことん特化",
+    accent: "#e186a8",
     systemPrompt: `あなたは恋愛相談を専門とする占い師「縁結び先生」です。
 一人称は「わたくし」、少し色っぽく粋な語り口。相談者の恋愛運・相性・
 今後の人間関係の展開に絞って見立てを伝え、具体的な行動のヒントを一つ添えます。
@@ -52,6 +55,7 @@ const TELLERS = [
     emoji: "💼",
     name: "仕事運鑑定士",
     tagline: "キャリア・お金の流れに特化",
+    accent: "#e3b23c",
     systemPrompt: `あなたはキャリアと金運を専門とする占い師「大黒堂」です。
 一人称は「わし」、落ち着いた貫禄のある語り口。相談者の仕事運・金運・
 今後のキャリアの流れに絞って見立てを伝え、実践しやすいアドバイスを一つ添えます。
@@ -103,22 +107,55 @@ function loadApiKey() {
 // 現行の無料枠モデル名を確認し、下の GEMINI_MODEL を書き換えてください。
 const GEMINI_MODEL = "gemini-flash-latest";
 
-async function askTeller({ apiKey, systemPrompt, userPrompt }) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      systemInstruction: { parts: [{ text: systemPrompt }] },
-      contents: [{ role: "user", parts: [{ text: userPrompt }] }],
-      generationConfig: { temperature: 0.9, maxOutputTokens: 400 },
-    }),
-  });
+const RETRYABLE_STATUSES = new Set([429, 503]);
+const MAX_RETRIES = 3;
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-  if (!res.ok) {
+async function askTeller({ apiKey, systemPrompt, userPrompt, onRetry }) {
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  let lastError;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let res;
+    try {
+      res = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: "user", parts: [{ text: userPrompt }] }],
+          generationConfig: { temperature: 0.9, maxOutputTokens: 400 },
+        }),
+      });
+    } catch (networkErr) {
+      // 通信そのものが失敗した場合もリトライ対象にする
+      lastError = networkErr;
+      if (attempt < MAX_RETRIES) {
+        onRetry?.(attempt + 1);
+        await sleep(800 * 2 ** attempt);
+        continue;
+      }
+      throw lastError;
+    }
+
+    if (res.ok) return await extractText(res);
+
     const errBody = await res.text().catch(() => "");
+
+    if (RETRYABLE_STATUSES.has(res.status) && attempt < MAX_RETRIES) {
+      lastError = new Error(`API error ${res.status}: ${errBody.slice(0, 200)}`);
+      onRetry?.(attempt + 1);
+      await sleep(800 * 2 ** attempt); // 0.8s → 1.6s → 3.2s
+      continue;
+    }
+
     throw new Error(`API error ${res.status}: ${errBody.slice(0, 200)}`);
   }
+
+  throw lastError;
+}
+
+async function extractText(res) {
 
   const data = await res.json();
   const text = data?.candidates?.[0]?.content?.parts?.map(p => p.text).join("") || "";
@@ -137,6 +174,7 @@ function renderTellerGrid() {
     card.type = "button";
     card.className = "teller-card";
     card.role = "radio";
+    card.style.setProperty("--accent", teller.accent);
     card.setAttribute("aria-checked", String(teller.id === selectedTellerId));
     card.innerHTML = `
       <span class="teller-card__emoji" aria-hidden="true">${teller.emoji}</span>
@@ -206,27 +244,31 @@ function wireForm() {
     const teller = TELLERS.find(t => t.id === selectedTellerId) || TELLERS[0];
 
     submitBtn.disabled = true;
-    submitBtn.querySelector("span").textContent = "見立て中…";
+    submitBtn.querySelector("span").textContent = "占い中…";
 
     try {
       const text = await askTeller({
         apiKey,
         systemPrompt: teller.systemPrompt,
         userPrompt: buildUserPrompt({ birthdate, concern, zodiac, eto }),
+        onRetry: (attempt) => {
+          submitBtn.querySelector("span").textContent = `混んでるみたい…もう一度お願い中(${attempt}/${MAX_RETRIES})`;
+        },
       });
       document.getElementById("resultPersona").textContent = `${teller.emoji} ${teller.name} の見立て`;
       document.getElementById("resultBody").textContent = text;
+      document.getElementById("resultCard").style.setProperty("--accent", teller.accent);
       resultSection.hidden = false;
       resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
     } catch (err) {
       document.getElementById("resultPersona").textContent = "うまくいきませんでした";
       document.getElementById("resultBody").textContent =
-        "占いの取得に失敗しました。APIキーが正しいか、無料枠の上限に達していないかをご確認ください。\n\n詳細: " + err.message;
+        "何度か試したけど占えなかったみたい…APIキーが正しいか、無料枠の上限に達していないかを確認してから、少し時間を置いてもう一度試してみてください。\n\n詳細: " + err.message;
       resultSection.hidden = false;
       resultSection.scrollIntoView({ behavior: "smooth", block: "start" });
     } finally {
       submitBtn.disabled = false;
-      submitBtn.querySelector("span").textContent = "見立てを申す";
+      submitBtn.querySelector("span").textContent = "結果を聞いてみる";
     }
   });
 

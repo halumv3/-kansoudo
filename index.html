@@ -3,10 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>観相堂 — 生年月日占い</title>
-<meta name="description" content="生年月日から、性格の違う占い師があなたを占います。無料のGemini APIで動く、GitHub公開のオープンソース占いアプリ。">
+<title>ゆるっと占い — 生年月日でちょこっと占う</title>
+<meta name="description" content="生年月日から、性格の違う占い師があなたをゆるっと占います。無料のGemini APIで動く、GitHub公開のオープンソース占いアプリ。">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=Zen+Kaku+Gothic+New:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -14,22 +14,22 @@
 <div class="stars" aria-hidden="true"></div>
 
 <header class="site-header">
-  <p class="site-header__eyebrow">かんそうどう</p>
-  <h1 class="site-header__title">観相堂</h1>
-  <p class="site-header__lead">生年月日をお預かりし、性格の違う占い師が見立てを申し上げます</p>
+  <p class="site-header__eyebrow">✨ ちょこっと占い ✨</p>
+  <h1 class="site-header__title">ゆるっと占い</h1>
+  <p class="site-header__lead">生まれた日を教えてね。性格の違う占い師がゆるっと占ってくれるよ</p>
 </header>
 
 <main class="hall">
 
   <!-- STEP 1: 占い師選択 -->
   <section class="scroll" id="step-teller">
-    <h2 class="scroll__title"><span class="scroll__num">一、</span>占い師を選ぶ</h2>
+    <h2 class="scroll__title"><span class="scroll__num">STEP 1</span>占い師を選んでね</h2>
     <div class="teller-grid" id="tellerGrid" role="radiogroup" aria-label="占い師を選ぶ"></div>
   </section>
 
   <!-- STEP 2: 入力 -->
   <section class="scroll" id="step-form">
-    <h2 class="scroll__title"><span class="scroll__num">二、</span>あなたのことを教えてください</h2>
+    <h2 class="scroll__title"><span class="scroll__num">STEP 2</span>あなたのことを教えてね</h2>
     <form id="fortuneForm" class="fortune-form">
       <div class="field">
         <label for="birthdate">生年月日</label>
@@ -40,7 +40,7 @@
         <input type="text" id="concern" name="concern" placeholder="例）転職を考えている、片思い中、など" maxlength="80">
       </div>
       <button type="submit" class="btn-seal" id="submitBtn">
-        <span>見立てを申す</span>
+        <span>結果を聞いてみる</span>
       </button>
     </form>
   </section>
@@ -59,7 +59,7 @@
   <section class="scroll scroll--settings" id="settingsSection">
     <details id="settingsDetails">
       <summary>
-        <h2 class="scroll__title scroll__title--inline"><span class="scroll__num">三、</span>APIキーの設定</h2>
+        <h2 class="scroll__title scroll__title--inline"><span class="scroll__num">STEP 3</span>APIキーの設定</h2>
       </summary>
       <div class="settings-body">
         <p>この占いは <strong>Google Gemini API（無料枠）</strong>で動きます。ご自身のAPIキーをブラウザにだけ保存して使う仕組みなので、サーバーには一切送信・保存されません。</p>
@@ -80,7 +80,7 @@
 </main>
 
 <footer class="site-footer">
-  <p>観相堂 is open source. 生年月日は保存されません。<a href="https://github.com/" target="_blank" rel="noopener">GitHubで見る</a></p>
+  <p>ゆるっと占い is open source. 生年月日は保存されません。<a href="https://github.com/" target="_blank" rel="noopener">GitHubで見る</a></p>
 </footer>
 
 <script src="app.js"></script>
