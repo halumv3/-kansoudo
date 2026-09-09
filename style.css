@@ -1,0 +1,299 @@
+/* ==========================================================================
+   観相堂 — design tokens
+   Background : #141a2e (深藍 / midnight indigo)
+   Panel      : #1c2440 (紺 / navy panel)
+   Gold       : #c9a227 (金泥 / gilt ink)
+   Seal red   : #a6423f (朱 / hanko vermillion)
+   Paper text : #f3ede0 (生成り / washi white)
+   Muted text : #9aa3bf
+   ========================================================================== */
+
+:root {
+  --bg: #141a2e;
+  --panel: #1c2440;
+  --panel-raised: #212b4d;
+  --gold: #c9a227;
+  --gold-soft: #e4c766;
+  --seal: #a6423f;
+  --seal-bright: #c65a52;
+  --ink: #f3ede0;
+  --ink-muted: #9aa3bf;
+  --rule: rgba(201, 162, 39, 0.28);
+
+  --font-display: "Shippori Mincho", serif;
+  --font-body: "Zen Kaku Gothic New", sans-serif;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  line-height: 1.7;
+}
+
+body {
+  position: relative;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* subtle starfield, drawn once, no per-element animation */
+.stars {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(1.5px 1.5px at 12% 18%, rgba(243,237,224,0.55) 0, transparent 60%),
+    radial-gradient(1px 1px at 28% 64%, rgba(243,237,224,0.4) 0, transparent 60%),
+    radial-gradient(1.5px 1.5px at 43% 12%, rgba(243,237,224,0.5) 0, transparent 60%),
+    radial-gradient(1px 1px at 61% 38%, rgba(243,237,224,0.35) 0, transparent 60%),
+    radial-gradient(1.5px 1.5px at 77% 70%, rgba(243,237,224,0.5) 0, transparent 60%),
+    radial-gradient(1px 1px at 88% 22%, rgba(243,237,224,0.4) 0, transparent 60%),
+    radial-gradient(1.5px 1.5px at 93% 82%, rgba(243,237,224,0.45) 0, transparent 60%),
+    radial-gradient(1px 1px at 6% 84%, rgba(243,237,224,0.35) 0, transparent 60%);
+  background-repeat: no-repeat;
+  opacity: 0.9;
+}
+
+/* ---- header ---- */
+.site-header {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  padding: 4.5rem 1.5rem 2.5rem;
+}
+
+.site-header__eyebrow {
+  font-family: var(--font-display);
+  color: var(--gold-soft);
+  letter-spacing: 0.4em;
+  font-size: 0.75rem;
+  margin: 0 0 0.75rem;
+}
+
+.site-header__title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(2.4rem, 6vw, 3.4rem);
+  margin: 0;
+  color: var(--ink);
+  text-shadow: 0 0 28px rgba(201, 162, 39, 0.25);
+}
+
+.site-header__lead {
+  color: var(--ink-muted);
+  max-width: 32em;
+  margin: 1rem auto 0;
+  font-size: 0.98rem;
+}
+
+/* ---- layout ---- */
+.hall {
+  position: relative;
+  z-index: 1;
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 0 1.25rem 5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.scroll {
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel-raised) 100%);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+  padding: 1.75rem 1.5rem 2rem;
+  position: relative;
+}
+
+.scroll__title {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 1.25rem;
+  color: var(--ink);
+}
+
+.scroll__title--inline { margin-bottom: 0; display: inline; }
+
+.scroll__num { color: var(--gold-soft); margin-right: 0.35em; }
+
+/* ---- teller grid ---- */
+.teller-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.9rem;
+}
+
+@media (max-width: 480px) {
+  .teller-grid { grid-template-columns: 1fr; }
+}
+
+.teller-card {
+  text-align: left;
+  background: rgba(20, 26, 46, 0.55);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  padding: 1rem 1rem 1.1rem;
+  cursor: pointer;
+  font-family: var(--font-body);
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.teller-card:hover { border-color: var(--gold); }
+
+.teller-card[aria-checked="true"] {
+  border-color: var(--gold);
+  background: rgba(201, 162, 39, 0.1);
+  box-shadow: inset 0 0 0 1px var(--gold);
+}
+
+.teller-card__emoji { font-size: 1.5rem; line-height: 1; }
+
+.teller-card__name {
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 1.02rem;
+}
+
+.teller-card__tagline {
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+}
+
+/* ---- form ---- */
+.fortune-form { display: flex; flex-direction: column; gap: 1.25rem; }
+
+.field { display: flex; flex-direction: column; gap: 0.5rem; }
+
+.field label {
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+.field__optional { color: var(--ink-muted); font-weight: 400; }
+
+.field input {
+  background: rgba(20, 26, 46, 0.6);
+  border: 1px solid var(--rule);
+  color: var(--ink);
+  padding: 0.75rem 0.9rem;
+  font-family: var(--font-body);
+  font-size: 1rem;
+}
+
+.field input:focus-visible {
+  outline: 2px solid var(--gold);
+  outline-offset: 1px;
+}
+
+.field input::placeholder { color: rgba(154, 163, 191, 0.6); }
+
+/* ---- buttons ---- */
+.btn-seal {
+  align-self: flex-start;
+  background: var(--seal);
+  color: var(--ink);
+  border: none;
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 700;
+  padding: 0.85rem 2rem;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+
+.btn-seal:hover { background: var(--seal-bright); }
+.btn-seal:active { transform: scale(0.98); }
+.btn-seal:disabled { opacity: 0.5; cursor: progress; }
+
+.btn-seal:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 2px; }
+
+.btn-ghost {
+  background: transparent;
+  color: var(--gold-soft);
+  border: 1px solid var(--rule);
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  padding: 0.6rem 1.3rem;
+  cursor: pointer;
+}
+
+.btn-ghost:hover { border-color: var(--gold); }
+.btn-ghost:focus-visible { outline: 2px solid var(--gold-soft); outline-offset: 2px; }
+
+/* ---- result ---- */
+.scroll--result { padding: 0; border: none; background: none; }
+
+.result-card {
+  background: linear-gradient(180deg, #201a12 0%, #17131b 100%);
+  border-top: 3px double var(--gold);
+  border-bottom: 3px double var(--gold);
+  padding: 2rem 1.6rem 1.8rem;
+  position: relative;
+}
+
+.result-card__persona {
+  font-family: var(--font-display);
+  color: var(--gold-soft);
+  font-size: 0.95rem;
+  margin: 0 0 1rem;
+  letter-spacing: 0.05em;
+}
+
+.result-card__body {
+  white-space: pre-wrap;
+  font-size: 1.02rem;
+}
+
+.result-card__footnote {
+  margin-top: 1.5rem;
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  border-top: 1px solid var(--rule);
+  padding-top: 0.9rem;
+}
+
+/* ---- settings ---- */
+.scroll--settings summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+.scroll--settings summary::-webkit-details-marker { display: none; }
+
+.settings-body { margin-top: 1.25rem; display: flex; flex-direction: column; gap: 1rem; }
+
+.settings-body a { color: var(--gold-soft); }
+
+.settings-steps { padding-left: 1.2rem; color: var(--ink-muted); font-size: 0.92rem; }
+
+.key-status { font-size: 0.85rem; color: var(--ink-muted); min-height: 1.2em; }
+.key-status[data-state="ok"] { color: #8fbf8a; }
+.key-status[data-state="error"] { color: var(--seal-bright); }
+
+/* ---- footer ---- */
+.site-footer {
+  position: relative;
+  z-index: 1;
+  text-align: center;
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  padding: 2rem 1.5rem 3rem;
+}
+
+.site-footer a { color: var(--gold-soft); }
